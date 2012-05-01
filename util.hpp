@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cstddef>
+#include "common.hpp"
 
 template<typename T> class permuted_array {
 	private:
@@ -13,7 +14,7 @@ template<typename T> class permuted_array {
 		int step_;
 		std::unique_ptr<T[]> ptr_;
 	public:
-		permuted_array(int size) :
+		permuted_array(int size = 0) :
 			/* We want size to be odd so that step of 1<<something will be OK */
 			size_(size|1),
 			ptr_(new T[size_]) {
@@ -32,8 +33,6 @@ template<typename T> class permuted_array {
 			return ptr_[(idx*step_)%size_];
 		}
 };
-
-typedef unsigned long long word;
 
 template<typename T> class word_access {
 	private:
@@ -58,8 +57,9 @@ template<typename T> class word_access {
 		};
 		T value_;
 	public:
+		static const int Size = (sizeof(T)+sizeof(word)-1)/sizeof(word);
 		word_access(T value) : value_(value) { }
-		std::conditional<is_const, const reference, reference> operator[](int idx) {
+		typename std::conditional<is_const, const reference, reference>::type operator[](int idx) {
 			// If type is const something, we return const reference which disallows write attempts. const_cast below is to create
 			// a reference of the same type at all (references would need to have completely distinct types otherwise)
 			return reference(const_cast<word*>(reinterpret_cast<const word*>(&value_) + idx), std::min(sizeof(word), sizeof(type) - idx*sizeof(word)));
@@ -77,6 +77,12 @@ template<typename T, typename Source> class word_proxy {
 			for(int i=offset/sizeof(word);i*sizeof(word)<offset + sizeof(U);i++)
 				buf[i - offset/sizeof(word)] = source_[i];
 			return *(reinterpret_cast<U*>(reinterpret_cast<char*>(buf) + (offset % sizeof(word))));
+		}
+		T operator*() {
+			word buf[(sizeof(T)+sizeof(word)-1)/sizeof(word)];
+			for(int i=0;i<(sizeof(T)+sizeof(word)-1)/sizeof(word);i++)
+				buf[i] = source_[i];
+			return *(reinterpret_cast<T*>(buf));
 		}
 };
 
