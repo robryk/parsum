@@ -1,6 +1,6 @@
-#include <atomic>
-#include <utility>
 #include "common.hpp"
+#include <utility>
+#include <iostream>
 
 template<typename F, typename S> class large_atomic {
 	private:
@@ -30,6 +30,13 @@ template<typename F, typename S> class large_atomic {
 			return contents_.compare_exchange_strong(as...);
 		}
 };
+
+namespace std {
+template<typename F, typename S> std::ostream& operator<<(std::ostream& str, std::pair<F, S> p)
+{
+	return (str << "(" << p.first << "," << p.second << ")");
+}
+}
 
 /*class large_atomic {
 	private:

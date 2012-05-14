@@ -1,6 +1,5 @@
 #include <cstring>
 #include <algorithm>
-#include <atomic>
 #include <memory>
 
 #include "util.hpp"
@@ -11,7 +10,7 @@ template<typename Struct> class history {
 		static constexpr int Size = word_access<Struct>::Size;
 
 		struct record {
-			VAR(bool) saved;
+			VAR_T(bool) saved;
 			std::atomic<word> version;
 			std::atomic<word> value[Size];
 		};
@@ -107,7 +106,7 @@ template<typename Struct> class history {
 			if (current_version_.load_1(std::memory_order_seq_cst) != old_version)
 				return false;
 			word my_previous_version = vals_[tid].version.load(std::memory_order_seq_cst);
-			if (!vals_[tid].saved && old_version <= my_previous_version + H_) {
+			if (!VAR(vals_[tid].saved) && old_version <= my_previous_version + H_) {
 				for(int i=0;i<Size;i++) {
 					word val = vals_[tid].value[i].load(std::memory_order_seq_cst);
 					large_atomic<word, word>& hist_entry =  history_[i][my_previous_version%H_];
@@ -117,10 +116,10 @@ template<typename Struct> class history {
 					if (prev.first > my_previous_version)
 						return false;
 					prev.second = hist_entry.load_2(std::memory_order_seq_cst);
-					if (!hist_entry.compare_exchange_strong(prev, std::make_pair(my_previous_version, val)))
+					if (!hist_entry.compare_exchange_strong(prev, std::make_pair(my_previous_version, val), std::memory_order_seq_cst))
 						return false;
 				}
-				vals_[tid].saved = true;
+				VAR(vals_[tid].saved) = true;
 			}
 			vals_[tid].version.store(old_version+1, std::memory_order_release);
 			for(int i=0;i<Size;i++)
