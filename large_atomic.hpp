@@ -8,8 +8,7 @@ template<typename F, typename S> class large_atomic {
 		static_assert(sizeof(S) <= sizeof(word), "large_atomic second element too large");
 		std::atomic<std::pair<F, S> > contents_;
 	public:
-		large_atomic(const std::pair<F, S> init_value) : contents_(init_value) {}
-		large_atomic() = default;
+		large_atomic(const std::pair<F, S> init_value = std::pair<F, S>()) : contents_(init_value) {}
 		template<typename... Ts> F load_1(Ts... as...) {
 			return contents_.load(as...).first;
 		}
@@ -18,12 +17,12 @@ template<typename F, typename S> class large_atomic {
 		}
 		template<typename... Ts> void store_1(const F& val, Ts... as...) { // fixme -- is memory order handling correct?
 			std::pair<F, S> p = contents_.load(as...);
-			while (!contents_.compare_exchange(p, std::make_pair(val, p.second), as...))
+			while (!contents_.compare_exchange_strong(p, std::make_pair(val, p.second), as...))
 				;
 		}
 		template<typename... Ts> void store_2(const F& val, Ts... as...) { // fixme -- is memory order handling correct?
 			std::pair<F, S> p = contents_.load(as...);
-			while (!contents_.compare_exchange(p, std::make_pair(p.first, val), as...))
+			while (!contents_.compare_exchange_strong(p, std::make_pair(p.first, val), as...))
 				;
 		}
 		template<typename... Ts> bool compare_exchange_strong(Ts... as...) {

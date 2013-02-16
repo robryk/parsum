@@ -10,7 +10,7 @@ template<typename Struct> class history {
 		static constexpr int Size = word_access<Struct>::Size;
 
 		struct record {
-			VAR_T(bool) saved;
+			VAR_T(bool) should_save;
 			std::atomic<word> version;
 			std::atomic<word> value[Size];
 		};
@@ -23,6 +23,7 @@ template<typename Struct> class history {
 
 		void save(word version, word tid)
 		{
+			LOG << "enter save(" << version << ", " << tid << ")";
 			large_atomic<word, word>& elem = history_tids_[version%H_];
 			word c_version = elem.load_1(std::memory_order_seq_cst);
 			if (c_version >= version)
@@ -82,8 +83,8 @@ template<typename Struct> class history {
 		class too_old_exception {
 		};
 
-		history(int H, int T, const Struct& initial_value) : H_(H) {
-			/*for(int i=0;i<Size;i++)
+		history(int H, int T, const Struct& initial_value) : H_(H), history_tids_(H) {
+			for(int i=0;i<Size;i++)
 				history_[i] = permuted_array<large_atomic<word, word> >(H_);
 			current_version_.store_1(2, std::memory_order_seq_cst);
 			current_version_.store_2(0, std::memory_order_seq_cst);
@@ -91,10 +92,15 @@ template<typename Struct> class history {
 				for(int j=0;j<H_;j++)
 					history_[i][j].store_1(i==0?1:0, std::memory_order_seq_cst); // all invalid
 			word_access<const Struct> raw_value(initial_value);
-			for(int i=0;i<Size;i++) {
-				vals_[0].value[i].store_1(2, std::memory_order_seq_cst);
-				vals_[0].value[i].store_2(raw_value[i], std::memory_order_seq_cst);
-			}*/
+			vals_.reset(new record[T]);
+			for(int i=0;i<T;i++)
+				VAR(vals_[i].should_save) = false;
+			VAR(vals_[0].should_save) = true;
+			vals_[0].version.store(2, std::memory_order_seq_cst);
+			for(int i=1;i<T;i++)
+				vals_[i].version.store(0, std::memory_order_seq_cst);
+			for(int i=0;i<Size;i++)
+				vals_[0].value[i].store(raw_value[i], std::memory_order_seq_cst);
 		}
 
 		word get_ver() {
@@ -106,7 +112,7 @@ template<typename Struct> class history {
 			if (current_version_.load_1(std::memory_order_seq_cst) != old_version)
 				return false;
 			word my_previous_version = vals_[tid].version.load(std::memory_order_seq_cst);
-			if (!VAR(vals_[tid].saved) && old_version <= my_previous_version + H_) {
+			if (VAR(vals_[tid].should_save) && old_version <= my_previous_version + H_) {
 				for(int i=0;i<Size;i++) {
 					word val = vals_[tid].value[i].load(std::memory_order_seq_cst);
 					large_atomic<word, word>& hist_entry =  history_[i][my_previous_version%H_];
@@ -114,13 +120,13 @@ template<typename Struct> class history {
 					prev.first = hist_entry.load_1(std::memory_order_seq_cst);
 					assert(prev.first != my_previous_version);
 					if (prev.first > my_previous_version)
-						return false;
+						break;
 					prev.second = hist_entry.load_2(std::memory_order_seq_cst);
 					if (!hist_entry.compare_exchange_strong(prev, std::make_pair(my_previous_version, val), std::memory_order_seq_cst))
-						return false;
+						break;
 				}
-				VAR(vals_[tid].saved) = true;
 			}
+			VAR(vals_[tid].should_save) = false;
 			vals_[tid].version.store(old_version+1, std::memory_order_release);
 			for(int i=0;i<Size;i++)
 				vals_[tid].value[i].store(raw_value[i], std::memory_order_release);
@@ -131,6 +137,7 @@ template<typename Struct> class history {
 			std::pair<word, word> old_current_version(old_version, old_tid);
 			if (!current_version_.compare_exchange_strong(old_current_version, std::make_pair(old_version+1, tid), std::memory_order_seq_cst))
 				return false;
+			VAR(vals_[tid].should_save) = true;
 			save(old_version+1, tid);
 		}
 

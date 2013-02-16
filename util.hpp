@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cstddef>
+#include <sstream>
 #include "common.hpp"
 
 template<typename T> class permuted_array {
@@ -85,6 +86,18 @@ template<typename T, typename Source> class word_proxy {
 			return *(reinterpret_cast<T*>(buf));
 		}
 };
+
+class log_stream : public std::stringstream {
+	public:
+		log_stream(rl::debug_info_param info) : info_(info) { }
+		~log_stream() {
+			rl::ctx().exec_log_msg(info_, str().c_str());
+		}
+	private:
+		rl::debug_info_param info_;
+};
+
+#define LOG (log_stream(RL_INFO))
 
 #endif
 
