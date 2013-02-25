@@ -48,6 +48,29 @@ class raw_history {
 		raw_history(int element_size, int history_size, int thread_count);
 };
 
+class raw_locked_history {
+	public:
+		typedef intptr_t version_t;
+		typedef intptr_t data_t;
+		typedef intptr_t tid_t;
+
+	private:
+		const int element_size_;
+		const int history_size_;
+		const int thread_count_;
+
+		std::mutex m_;
+		std::unique_ptr<VAR_T(bool)[]> thread_checks_; // we try to cause a race here if two threads use the same tid simultaneously
+		std::unique_ptr<std::unique_ptr<VAR_T(intptr_t)[]>[]> buffer_;
+		VAR_T(intptr_t) current_version_;
+
+	public:
+		version_t get_version();
+		bool get(version_t ver, data_t* output);
+		bool publish(tid_t me, version_t ver, const data_t* input);
+		raw_locked_history(int element_size, int history_size, int thread_count);
+};
+
 template<typename T, typename Raw = raw_history> class history {
 	private:
 		Raw hist;

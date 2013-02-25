@@ -93,5 +93,55 @@ raw_history::raw_history(int element_size, int history_size, int thread_count) :
 	}
 }
 
-		
-	
+raw_locked_history::version_t raw_locked_history::get_version() {
+	m_.lock($);
+	intptr_t version = VAR(current_version_);
+	m_.unlock($);
+	return version;
+}
+
+bool raw_locked_history::get(version_t ver, data_t* output) {
+	if (ver < 0)
+		return false;
+	m_.lock($);
+	if (ver > VAR(current_version_) || ver <= VAR(current_version_) - history_size_) {
+		m_.unlock($);
+		return false;
+	}
+	for(int i=0;i<element_size_;i++)
+		output[i] = VAR(buffer_[ver % history_size_][i]);
+	m_.unlock($);
+	return true;
+}
+
+bool raw_locked_history::publish(tid_t me, version_t ver, const data_t* input) {
+	VAR(thread_checks_[me]) = true;
+	if (ver < 0)
+		return false;
+	m_.lock($);
+	bool ok = false;
+	if (VAR(current_version_) + 1 == ver) {
+		ok = true;
+		VAR(current_version_) = ver;
+		for(int i=0;i<element_size_;i++)
+			VAR(buffer_[ver % history_size_][i]) = input[i];
+	}
+	m_.unlock($);
+	VAR(thread_checks_[me]) = true;
+	return ok;
+}
+
+raw_locked_history::raw_locked_history(int element_size, int history_size, int thread_count):
+	element_size_(element_size),
+	history_size_(history_size),
+	thread_count_(thread_count),
+	thread_checks_(new VAR_T(bool)[thread_count]),
+	buffer_(new std::unique_ptr<VAR_T(intptr_t)[]>[history_size]),
+	current_version_(0)
+{
+	for(int i=0;i<history_size_;i++) {
+		buffer_[i].reset(new VAR_T(intptr_t)[element_size_]);
+		for(int j=0;j<element_size_;j++)
+			VAR(buffer_[i][j]) = 0;
+	}
+}
