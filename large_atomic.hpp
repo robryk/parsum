@@ -1,3 +1,6 @@
+#ifndef __LARGE_ATOMIC_GUARD
+#define __LARGE_ATOMIC_GUARD
+
 #include "common.hpp"
 #include <utility>
 #include <iostream>
@@ -82,4 +85,4 @@ template<> std::atomic<big_int>& _large_atomic_half<1>(large_atomic& a) {
 	return a.second_half();
 }*/
 
-
+#endif
