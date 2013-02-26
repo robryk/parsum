@@ -27,12 +27,12 @@ struct history_test : public rl::test_suite<history_test, thread_count> {
 		element value;
 		bool ok = hist.get(ver, &value);
 		if (ok) {
-			RL_ASSERT(value.ok());
-			RL_ASSERT(value.ver == ver);
+			assert(value.ok());
+			assert(value.ver == ver);
 		} else {
 			version_t current_ver = hist.get_version();
 			LOG << "current ver " << current_ver;
-			RL_ASSERT(current_ver - ver >= history_size);
+			assert(current_ver - ver >= history_size);
 		}
 	}
 
@@ -46,7 +46,7 @@ struct history_test : public rl::test_suite<history_test, thread_count> {
 			element value(i, thread_idx);
 			bool ok = hist.publish(thread_idx, i, &value);
 			if (ok) {
-				RL_ASSERT(!VAR(done[i])); // We need not worry about races on done[i] -- they cause the test to fail.
+				assert(!VAR(done[i])); // We need not worry about races on done[i] -- they cause the test to fail.
 				VAR(done[i]) = true;
 			}
 			LOG << "checking " << i;
@@ -56,7 +56,7 @@ struct history_test : public rl::test_suite<history_test, thread_count> {
 
 	void after() {
 		for(int i=1;i<2*history_size;i++)
-			RL_ASSERT(VAR(done[i]));
+			assert(VAR(done[i]));
 	}
 };
 

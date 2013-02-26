@@ -23,9 +23,9 @@ struct holder_test : public rl::test_suite<holder_test, thread_count> {
 			intptr_t ver = hold.get(&value);
 			if (ver == holder<element>::INVALID_VERSION)
 				continue;
-			RL_ASSERT(ver >= prev_ver);
-			RL_ASSERT(value.ok());
-			RL_ASSERT(value.ver1 == ver);
+			assert(ver >= prev_ver);
+			assert(value.ok());
+			assert(value.ver1 == ver);
 			value = element(ver + 1);
 			hold.update(ver + 1, &value);
 			prev_ver = ver + 1;

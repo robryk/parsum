@@ -21,7 +21,7 @@ void raw_holder::update(intptr_t version, const intptr_t* value) {
 		intptr_t previous_version = contents_[i].load_1(memory_order_seq_cst);
 		if (previous_version >= version)
 			continue;
-		RL_ASSERT(previous_version == version - 1);
+		assert(previous_version == version - 1);
 		intptr_t previous_data = contents_[i].load_2(memory_order_seq_cst);
 		contents_[i].compare_exchange_strong(make_pair(previous_version, previous_data), make_pair(version, value[i]), memory_order_seq_cst);
 	}
@@ -46,10 +46,10 @@ void raw_locked_holder::update(intptr_t version, const intptr_t* value) {
 	m_.lock($);
 	if (VAR(version_) == version) {
 		for(int i=0;i<element_size_;i++)
-			RL_ASSERT(value[i] == VAR(contents_[i]));
+			assert(value[i] == VAR(contents_[i]));
 	}
 	if (VAR(version_) < version) {
-		RL_ASSERT(VAR(version_) == version - 1);
+		assert(VAR(version_) == version - 1);
 		VAR(version_) = version;
 		for(int i=0;i<element_size_;i++)
 			VAR(contents_[i]) = value[i];

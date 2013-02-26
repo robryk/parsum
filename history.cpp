@@ -42,7 +42,7 @@ bool raw_history::get(version_t ver, data_t* output) {
 }
 
 bool raw_history::publish(tid_t me, version_t ver, const data_t* input) {
-	RL_ASSERT(me < thread_count_);
+	assert(me < thread_count_);
 	if (ver < 0)
 		return false;
 	version_t previous_version = current_version_.load_1(memory_order_seq_cst);

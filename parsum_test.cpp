@@ -31,9 +31,9 @@ struct reducing_snapshot_test : public rl::test_suite<reducing_snapshot_test, th
 
 	void after() {
 		for(int i=0;i<sizeof(done1)/sizeof(VAR_T(bool));i++)
-			RL_ASSERT(VAR(done1[i]));
+			assert(VAR(done1[i]));
 		for(int i=0;i<sizeof(done2)/sizeof(VAR_T(bool));i++)
-			RL_ASSERT(VAR(done2[i]));
+			assert(VAR(done2[i]));
 	}
 
 
@@ -41,13 +41,13 @@ struct reducing_snapshot_test : public rl::test_suite<reducing_snapshot_test, th
 		for(int i=1;i<=op_count;i++) {
 			intpair new_value(i, 0);
 			reducing_snapshot<intpair>::update_result res = summer->update(thread_idx, &new_value);
-			RL_ASSERT(VAR(done1[res.value_before.first]) == false);
+			assert(VAR(done1[res.value_before.first]) == false);
 			VAR(done1[res.value_before.first]) = true;
 		}
 		for(int i=1;i<=op_count;i++) {
 			intpair new_value(op_count, i);
 			reducing_snapshot<intpair>::update_result res = summer->update(thread_idx, &new_value);
-			RL_ASSERT(VAR(done2[res.value_before.second]) == false);
+			assert(VAR(done2[res.value_before.second]) == false);
 			VAR(done2[res.value_before.second]) = true;
 		}
 	}

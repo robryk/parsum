@@ -43,18 +43,18 @@ template<typename T> class leaf : public reducing_snapshot<T> {
 		}
 
 		virtual update_result update(intptr_t tid, const T* input) {
-			RL_ASSERT(tid == 0);
+			assert(tid == 0);
 			update_result result;
 			intptr_t version = history_.get_version() + 1;
 			bool ok = history_.publish(0, version, input);
-			RL_ASSERT(ok);
+			assert(ok);
 			ok = get_last(0, &result);
-			RL_ASSERT(ok);
+			assert(ok);
 			return result;
 		}
 
 		virtual bool get_last(intptr_t tid, update_result* output) {
-			RL_ASSERT(tid == 0);
+			assert(tid == 0);
 			intptr_t version = history_.get_version();
 			output->update_count = version;
 			output->version = version;
@@ -103,7 +103,7 @@ template<typename T> class node : public reducing_snapshot<T> {
 				else
 					version_before = middle;
 			}
-			RL_ASSERT(version_before + 1 == version_after);
+			assert(version_before + 1 == version_after);
 			value value_before, value_after;
 			if (!history_.get(version_before, &value_before))
 				return;
@@ -156,7 +156,7 @@ template<typename T> class node : public reducing_snapshot<T> {
 
 			update_result result;
 			bool ok = get_last(tid, &result);
-			RL_ASSERT(ok);
+			assert(ok);
 			return result;
 		}
 
@@ -178,14 +178,14 @@ template<typename T> class node : public reducing_snapshot<T> {
 			history_(3*thread_count, thread_count),
 			latest_(new holder<latest_value, RawHolder>[thread_count])
 		{
-			RL_ASSERT(thread_count_ > 1);
+			assert(thread_count_ > 1);
 			children_[0].reset(reducing_snapshot<T>::create((thread_count + 1) / 2));
 			children_[1].reset(reducing_snapshot<T>::create(thread_count / 2));
 		}
 };
 
 template<typename T> reducing_snapshot<T>* reducing_snapshot<T>::create(int thread_count) {
-	RL_ASSERT(thread_count > 0);
+	assert(thread_count > 0);
 	if (thread_count == 1)
 		return new leaf<T>();
 	else
