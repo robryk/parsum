@@ -2,9 +2,6 @@
 #include "holder.hpp"
 #include "history.hpp"
 
-#include <string>
-using std::string;
-
 template<typename T> class reducing_snapshot {
 	public:
 		struct update_result {
@@ -120,7 +117,6 @@ template<typename T> class node : public reducing_snapshot<T> {
 				lv.value_before = child_result.value_before + value_before.child_values[1];
 			else
 				lv.value_before = value_after.child_values[0] + child_result.value_before ;
-			//LOG << "N" << name_ << " update_last tid=" << tid << " val_before=" << lv.value_before << " version=" << lv.version << " update_count=" << child_result.update_count;
 			latest_[tid].update(child_result.update_count, &lv);
 		}
 	public:
@@ -154,10 +150,8 @@ template<typename T> class node : public reducing_snapshot<T> {
 				if (new_value.child_versions[0] == INVALID_VERSION || new_value.child_versions[1] == INVALID_VERSION)
 					break;
 				update_last(my_version % thread_count_);
-				if (history_.publish(tid, my_version+1, &new_value)) {
-			//		LOG << "N" << name_ << "succ publish v="<<my_version+1 << " chvers=" << new_value.child_versions[0] << " " << new_value.child_versions[1];
+				if (history_.publish(tid, my_version+1, &new_value))
 					break;
-				}
 			} while (true);
 
 			update_result result;
