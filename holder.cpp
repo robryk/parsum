@@ -60,4 +60,6 @@ raw_locked_holder::raw_locked_holder(int element_size) :
 	contents_(new VAR_T(intptr_t)[element_size]),
 	version_(0)
 {
+	for(int i=0;i<element_size_;i++)
+		VAR(contents_[i]) = 0;
 }
