@@ -11,7 +11,7 @@ class raw_holder {
 		static constexpr int INVALID_VERSION = -1;
 
 		intptr_t get(intptr_t* value);
-		// Precondition: For every lower version ver': If an update(ver') has started, at least one update(ver') has finished
+		// Precondition: Whenever a call to update(ver+1) starts, at least one call to update(ver) has finished
 		// Precondition: All calls to update(ver) for a given ver have equal values
 		void update(intptr_t version, const intptr_t* value);
 };
