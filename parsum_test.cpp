@@ -60,17 +60,17 @@ struct reducing_snapshot_test {
 	{ }
 };
 
-RELACY_FIXTURE(reducing_snapshot_test, 3, 2);
+RELACY_FIXTURE(reducing_snapshot_fixture, reducing_snapshot_test, 3, 2);
 
 
 int main()
 {
 #ifdef RELACY
 	rl::test_params p;
-	p.execution_depth_limit = 5000;
-	rl::simulate<reducing_snapshot_test_fixture>(p);
+	p.execution_depth_limit = 50000;
+	rl::simulate<reducing_snapshot_fixture>(p);
 #else
-	run_test<reducing_snapshot_test>(2, 1000000);
+	run_test<reducing_snapshot_test>(24, 100000);
 #endif
 }
 		

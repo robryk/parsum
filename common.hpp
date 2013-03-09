@@ -13,13 +13,13 @@ typedef __uint128_t dword;
 // $ is defined in relacy
 #define USING_MEMORY_ORDERS using rl::mo_seq_cst; using rl::mo_acquire; using rl::mo_release; using rl::mo_relaxed
 
-#define RELACY_FIXTURE(name, thread_count, ...) \
-struct name##_fixture : public rl::test_suite<name##_fixture, thread_count>, public name { \
+#define RELACY_FIXTURE(fixture, name, thread_count, ...) \
+struct fixture : public rl::test_suite<fixture, thread_count>, public name { \
 	void before() { name::before(); } \
 	void after() { name::after(); } \
 	void invariant() { /*history_test::invariant();*/ } \
 	void thread(int thread_idx) { name::thread(thread_idx); } \
-	name##_fixture() : name(thread_count, ##__VA_ARGS__) { } \
+	fixture() : name(thread_count, ##__VA_ARGS__) { } \
 }
 
 #else

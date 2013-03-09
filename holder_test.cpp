@@ -41,12 +41,12 @@ struct holder_test {
 	holder_test(int thread_count) {}
 };
 
-RELACY_FIXTURE(holder_test, 3);
+RELACY_FIXTURE(holder_fixture, holder_test, 3);
 
 int main()
 {
 #ifdef RELACY
-	rl::simulate<holder_test_fixture>();
+	rl::simulate<holder_fixture>();
 #else
 	run_test<holder_test>(3);
 #endif

@@ -62,12 +62,12 @@ struct history_test {
 	}
 };
 
-RELACY_FIXTURE(history_test, 5, 5, 2);
+RELACY_FIXTURE(history_fixture, history_test, 5, 5, 2);
 
 int main()
 {
 #ifdef RELACY
-	rl::simulate<history_test_fixture>();
+	rl::simulate<history_fixture>();
 #else
 	run_test<history_test>(2, 500, 20000);
 #endif
