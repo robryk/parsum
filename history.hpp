@@ -39,7 +39,7 @@ class raw_history {
 
 	public:
 		version_t get_version() {
-			using rl::mo_seq_cst;
+			USING_MEMORY_ORDERS;
 			return current_version_.load_1(memory_order_seq_cst);
 		}
 

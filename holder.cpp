@@ -1,6 +1,6 @@
 #include "holder.hpp"
 
-using rl::mo_seq_cst;
+USING_MEMORY_ORDERS;
 
 using std::make_pair;
 
@@ -23,7 +23,8 @@ void raw_holder::update(intptr_t version, const intptr_t* value) {
 			continue;
 		assert(previous_version == version - 1);
 		intptr_t previous_data = contents_[i].load_2(memory_order_seq_cst);
-		contents_[i].compare_exchange_strong(make_pair(previous_version, previous_data), make_pair(version, value[i]), memory_order_seq_cst);
+		std::pair<intptr_t, intptr_t> previous(previous_version, previous_data);
+		contents_[i].compare_exchange_strong(previous, make_pair(version, value[i]), memory_order_seq_cst);
 	}
 }
 

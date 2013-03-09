@@ -35,6 +35,8 @@ template<typename T> class permuted_array {
 		}
 };
 
+#ifdef RELACY
+
 class log_stream : public std::stringstream {
 	public:
 		log_stream(rl::debug_info_param info) : info_(info) { }
@@ -46,6 +48,8 @@ class log_stream : public std::stringstream {
 };
 
 #define LOG (log_stream(RL_INFO))
+
+#endif // RELACY
 
 #endif
 

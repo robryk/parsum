@@ -5,6 +5,7 @@
 #include <utility>
 #include <iostream>
 
+#ifdef RELACY
 template<typename F, typename S> class large_atomic {
 	private:
 		static_assert(sizeof(F) <= sizeof(word), "large_atomic first element too large");
@@ -39,50 +40,63 @@ template<typename F, typename S> std::ostream& operator<<(std::ostream& str, std
 	return (str << "(" << p.first << "," << p.second << ")");
 }
 }
+#else // RELACY
+// In the following, we rely on the way std::atomic is implemented in GCC on x86_64.
 
-/*class large_atomic {
+template<typename F, typename S> class large_atomic {
 	private:
-		large_int storage;
-		std::atomic<large_int> &all() { return *reinterpret_cast<std::atomic<large_int>* >(&storage); };
-		std::atomic<big_int> &first_half() { return *reinterpret_cast<std::atomic<big_int>* >(&storage); };
-		std::atomic<big_int> &second_half() { return *(reinterpret_cast<std::atomic<big_int>* >(&storage) + 1); };
-		template<int N> friend std::atomic<big_int>& _large_atomic_half(large_atomic&);
-		template<int N> std::atomic<big_int>& half() { return _large_atomic_half<N>(*this); }
+		dword storage;
+		static_assert(sizeof(std::atomic<dword>) == sizeof(dword), "Atomic implementation doesn't match assumptions");
+		static_assert(sizeof(std::atomic<word>) == sizeof(word), "Atomic implementation doesn't match assumptions");
+		std::atomic<dword> *all() { return reinterpret_cast<std::atomic<dword>* >(&storage); };
+		std::atomic<word> *first() { return reinterpret_cast<std::atomic<word>* >(&storage); };
+		std::atomic<word> *second() { return (reinterpret_cast<std::atomic<word>* >(&storage) + 1); };
+
+		dword pack(std::pair<F, S> v) {
+			dword r;
+			reinterpret_cast<word*>(&r)[0] = v.first;
+			reinterpret_cast<word*>(&r)[1] = v.second;
+			return r;
+		}
+
+		std::pair<F, S> unpack(dword v) {
+			std::pair<F, S> p;
+			p.first = reinterpret_cast<word*>(&v)[0];
+			p.second = reinterpret_cast<word*>(&v)[1];
+			return p;
+		}
+
 	public:
-		struct value {
-			
-		large_atomic() {
-			new (&storage) std::atomic<large_int>;
-			new (reinterpret_cast<big_int*>(&storage)) std::atomic<big_int>;
-			new (reinterpret_cast<big_int*>(&storage)+1) std::atomic<big_int>;
+		large_atomic(std::pair<F, S> init_value = std::pair<F, S>()) {
+			new (&storage) std::atomic<dword>;
+			new (reinterpret_cast<word*>(&storage)) std::atomic<word>;
+			new (reinterpret_cast<word*>(&storage)+1) std::atomic<word>;
+			all()->store(pack(init_value), std::memory_order_seq_cst);
 		}
 
-		template<int N> big_int load(std::memory_order mo) {
-			return half<N>().load(mo);
+		F load_1(std::memory_order mo) {
+			return first()->load(mo);
 		}
 
-		template<int N> void store(big_int v, std::memory_order mo) {
-			half<N>().store(v, mo);
+		F load_2(std::memory_order mo) {
+			return second()->load(mo);
 		}
 
-		bool compare_exchange_strong(large_int exp, large_int des, std::memory_order mo) {
-			return all().compare_exchange_strong(exp, des, mo);
+		void store_1(const F& v, std::memory_order mo) {
+			first()->store(v, mo);
 		}
 
-		large_int compare_exchange_strong_value(large_int exp, large_int des, std::memory_order mo) {
-			all().compare_exchange_strong(exp, des, mo);
-			return exp;
+		void store_2(const F& v, std::memory_order mo) {
+			second()->store(v, mo);
+		}
+
+		bool compare_exchange_strong(std::pair<F, S>& expected, std::pair<F, S> desired, std::memory_order mo) {
+			dword exp_raw = pack(expected);
+			bool ret = all()->compare_exchange_strong(exp_raw, pack(desired), mo);
+			expected = unpack(exp_raw);
+			return ret;
 		}
 };
-
-template<int N> std::atomic<big_int>& _large_atomic_half(large_atomic& a) {
-	// TODO: break this
-}
-template<> std::atomic<big_int>& _large_atomic_half<0>(large_atomic& a) {
-	return a.first_half();
-}
-template<> std::atomic<big_int>& _large_atomic_half<1>(large_atomic& a) {
-	return a.second_half();
-}*/
+#endif // !RELACY
 
 #endif

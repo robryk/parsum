@@ -1,9 +1,6 @@
 #include "history.hpp"
 
-using rl::mo_seq_cst;
-using rl::mo_acquire;
-using rl::mo_release;
-using rl::mo_relaxed;
+USING_MEMORY_ORDERS;
 
 using std::make_pair;
 
@@ -64,13 +61,15 @@ bool raw_history::publish(tid_t me, version_t ver, const data_t* input) {
 			previous_read = true;
 		}
 		data_t buffer_data = buffer_[previous_version % history_size_][i].load_2(memory_order_seq_cst);
-		buffer_[previous_version % history_size_][i].compare_exchange_strong(make_pair(buffer_version, buffer_data), make_pair(previous_version, previous_element[i]), memory_order_seq_cst);
+		std::pair<version_t, data_t> expected(buffer_version, buffer_data);
+		buffer_[previous_version % history_size_][i].compare_exchange_strong(expected, make_pair(previous_version, previous_element[i]), memory_order_seq_cst);
 	}
 	latest_[me].version().store(ver, memory_order_relaxed);
-	rl::atomic_thread_fence(memory_order_release);
+	std::atomic_thread_fence(memory_order_release);
 	for(int i=0;i<element_size_;i++)
 		latest_[me].data(i).store(input[i], memory_order_relaxed);
-	return current_version_.compare_exchange_strong(make_pair(previous_version, previous_creator), make_pair(ver, me), memory_order_seq_cst);
+	std::pair<version_t, tid_t> previous_cv(previous_version, previous_creator);
+	return current_version_.compare_exchange_strong(previous_cv, make_pair(ver, me), memory_order_seq_cst);
 }
 
 raw_history::raw_history(int element_size, int history_size, int thread_count) :

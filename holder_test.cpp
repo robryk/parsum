@@ -1,8 +1,8 @@
 #include "holder.hpp"
 
-const int thread_count = 3;
+//const int thread_count = 3;
 
-struct holder_test : public rl::test_suite<holder_test, thread_count> {
+struct holder_test {
 	struct element {
 		intptr_t ver1;
 		intptr_t ver2;
@@ -15,6 +15,9 @@ struct holder_test : public rl::test_suite<holder_test, thread_count> {
 	};
 	
 	holder<element> hold;
+
+	void before() {
+	}
 
 	void thread(int thread_idx) {
 		intptr_t prev_ver = 0;
@@ -31,10 +34,21 @@ struct holder_test : public rl::test_suite<holder_test, thread_count> {
 			prev_ver = ver + 1;
 		}
 	}
+
+	void after() {
+	}
+
+	holder_test(int thread_count) {}
 };
+
+RELACY_FIXTURE(holder_test, 3);
 
 int main()
 {
-	rl::simulate<holder_test>();
+#ifdef RELACY
+	rl::simulate<holder_test_fixture>();
+#else
+	run_test<holder_test>(3);
+#endif
 }
 
