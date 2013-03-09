@@ -21,8 +21,8 @@ template<typename T> class reducing_snapshot {
 		static reducing_snapshot* create(int thread_count);
 };
 
-typedef raw_locked_history RawHistory;
-typedef raw_locked_holder RawHolder;
+typedef raw_history RawHistory;
+typedef raw_holder RawHolder;
 
 template<typename T> class leaf : public reducing_snapshot<T> {
 	private:

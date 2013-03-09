@@ -1,8 +1,5 @@
 #include "parsum.hpp"
 
-const int thread_count = 3;
-const int op_count = 2;
-
 struct intpair {
 	intptr_t first, second;
 	intpair() = default;
@@ -16,26 +13,28 @@ intpair operator+(const intpair& a, const intpair& b) {
 	return intpair(a.first + b.first, a.second + b.second);
 }
 
-struct reducing_snapshot_test : public rl::test_suite<reducing_snapshot_test, thread_count> {
+struct reducing_snapshot_test {
+
+	int thread_count;
+	int op_count;
 
 	std::unique_ptr<reducing_snapshot<intpair> > summer;
-	VAR_T(bool) done1[thread_count * op_count];
-	VAR_T(bool) done2[thread_count * op_count];
+	std::unique_ptr<VAR_T(bool)[]> done1;
+	std::unique_ptr<VAR_T(bool)[]> done2;
 
 	void before() {
-		for(int i=0;i<sizeof(done1)/sizeof(VAR_T(bool));i++)
+		for(int i=0;i<thread_count * op_count;i++)
 			VAR(done1[i]) = false;
-		for(int i=0;i<sizeof(done2)/sizeof(VAR_T(bool));i++)
+		for(int i=0;i<thread_count * op_count;i++)
 			VAR(done2[i]) = false;
 	}
 
 	void after() {
-		for(int i=0;i<sizeof(done1)/sizeof(VAR_T(bool));i++)
+		for(int i=0;i<thread_count * op_count;i++)
 			assert(VAR(done1[i]));
-		for(int i=0;i<sizeof(done2)/sizeof(VAR_T(bool));i++)
+		for(int i=0;i<thread_count * op_count;i++)
 			assert(VAR(done2[i]));
 	}
-
 
 	void thread(int thread_idx) {
 		for(int i=1;i<=op_count;i++) {
@@ -52,16 +51,26 @@ struct reducing_snapshot_test : public rl::test_suite<reducing_snapshot_test, th
 		}
 	}
 
-	reducing_snapshot_test() : summer(reducing_snapshot<intpair>::create(thread_count)) { }
+	reducing_snapshot_test(int t, int o) :
+		thread_count(t),
+		op_count(o),
+		summer(reducing_snapshot<intpair>::create(t)),
+		done1(new VAR_T(bool)[t*o]),
+		done2(new VAR_T(bool)[t*o])
+	{ }
 };
 
-
+RELACY_FIXTURE(reducing_snapshot_test, 3, 2);
 
 
 int main()
 {
+#ifdef RELACY
 	rl::test_params p;
 	p.execution_depth_limit = 5000;
-	rl::simulate<reducing_snapshot_test>(p);
+	rl::simulate<reducing_snapshot_test_fixture>(p);
+#else
+	run_test<reducing_snapshot_test>(2, 1000000);
+#endif
 }
 		
