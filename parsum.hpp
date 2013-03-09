@@ -2,7 +2,7 @@
 #include "holder.hpp"
 #include "history.hpp"
 
-template<typename T> class reducing_snapshot {
+template<typename T, typename RawHistory = raw_history, typename RawHolder = raw_holder> class reducing_snapshot {
 	public:
 		struct update_result {
 			intptr_t update_count;
@@ -21,10 +21,7 @@ template<typename T> class reducing_snapshot {
 		static reducing_snapshot* create(int thread_count);
 };
 
-typedef raw_history RawHistory;
-typedef raw_holder RawHolder;
-
-template<typename T> class leaf : public reducing_snapshot<T> {
+template<typename T, typename RawHistory = raw_history> class leaf : public reducing_snapshot<T> {
 	private:
 		typedef typename reducing_snapshot<T>::update_result update_result;
 		constexpr static int INVALID_VERSION = reducing_snapshot<T>::INVALID_VERSION;
@@ -64,7 +61,7 @@ template<typename T> class leaf : public reducing_snapshot<T> {
 		leaf() : history_(3, 1) {}
 };
 
-template<typename T> class node : public reducing_snapshot<T> {
+template<typename T, typename RawHistory = raw_history, typename RawHolder = raw_holder> class node : public reducing_snapshot<T> {
 	private:
 		typedef typename reducing_snapshot<T>::update_result update_result;
 		constexpr static int INVALID_VERSION = reducing_snapshot<T>::INVALID_VERSION;
@@ -91,6 +88,10 @@ template<typename T> class node : public reducing_snapshot<T> {
 			update_result child_result;
 			bool ok = children_[child_idx(tid)]->get_last(child_tid(tid), &child_result);
 			if (!ok)
+				return;
+			latest_value current_lv;
+			intptr_t our_lv = latest_[tid].get(&current_lv);
+			if (our_lv >= child_result.update_count)
 				return;
 			intptr_t version_after = history_.get_version();
 			intptr_t version_before = version_after - 3*thread_count_;
@@ -157,6 +158,7 @@ template<typename T> class node : public reducing_snapshot<T> {
 			update_result result;
 			bool ok = get_last(tid, &result);
 			assert(ok);
+			assert(result.update_count == child_result.update_count);
 			return result;
 		}
 
@@ -184,11 +186,11 @@ template<typename T> class node : public reducing_snapshot<T> {
 		}
 };
 
-template<typename T> reducing_snapshot<T>* reducing_snapshot<T>::create(int thread_count) {
+template<typename T, typename RawHistory, typename RawHolder> reducing_snapshot<T, RawHistory, RawHolder>* reducing_snapshot<T, RawHistory, RawHolder>::create(int thread_count) {
 	assert(thread_count > 0);
 	if (thread_count == 1)
-		return new leaf<T>();
+		return new leaf<T, RawHistory>();
 	else
-		return new node<T>(thread_count);
+		return new node<T, RawHistory, RawHolder>(thread_count);
 }
 
