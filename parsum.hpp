@@ -21,9 +21,9 @@ template<typename T, typename RawHistory = raw_history, typename RawHolder = raw
 		static reducing_snapshot* create(int thread_count);
 };
 
-template<typename T, typename RawHistory = raw_history> class leaf : public reducing_snapshot<T> {
+template<typename T, typename RawHistory, typename RawHolder> class leaf : public reducing_snapshot<T, RawHistory, RawHolder> {
 	private:
-		typedef typename reducing_snapshot<T>::update_result update_result;
+		typedef typename reducing_snapshot<T, RawHistory, RawHolder>::update_result update_result;
 		constexpr static int INVALID_VERSION = reducing_snapshot<T>::INVALID_VERSION;
 
 		history<T, RawHistory> history_;
@@ -61,9 +61,9 @@ template<typename T, typename RawHistory = raw_history> class leaf : public redu
 		leaf() : history_(3, 1) {}
 };
 
-template<typename T, typename RawHistory = raw_history, typename RawHolder = raw_holder> class node : public reducing_snapshot<T> {
+template<typename T, typename RawHistory, typename RawHolder> class node : public reducing_snapshot<T, RawHistory, RawHolder> {
 	private:
-		typedef typename reducing_snapshot<T>::update_result update_result;
+		typedef typename reducing_snapshot<T, RawHistory, RawHolder>::update_result update_result;
 		constexpr static int INVALID_VERSION = reducing_snapshot<T>::INVALID_VERSION;
 
 		struct value {
@@ -79,7 +79,7 @@ template<typename T, typename RawHistory = raw_history, typename RawHolder = raw
 		
 		history<value, RawHistory> history_;
 		std::unique_ptr<holder<latest_value, RawHolder>[]> latest_;
-		std::unique_ptr<reducing_snapshot<T> > children_[2];
+		std::unique_ptr<reducing_snapshot<T, RawHistory, RawHolder> > children_[2];
 
 		int child_idx(int tid) { return tid % 2; }
 		int child_tid(int tid) { return tid / 2; }
@@ -173,7 +173,6 @@ template<typename T, typename RawHistory = raw_history, typename RawHolder = raw
 			output->version = last_value.version;
 			return true;
 		}
-
 	
 		node(int thread_count) :
 			thread_count_(thread_count),
@@ -181,15 +180,15 @@ template<typename T, typename RawHistory = raw_history, typename RawHolder = raw
 			latest_(new holder<latest_value, RawHolder>[thread_count])
 		{
 			assert(thread_count_ > 1);
-			children_[0].reset(reducing_snapshot<T>::create((thread_count + 1) / 2));
-			children_[1].reset(reducing_snapshot<T>::create(thread_count / 2));
+			children_[0].reset(reducing_snapshot<T, RawHistory, RawHolder>::create((thread_count + 1) / 2));
+			children_[1].reset(reducing_snapshot<T, RawHistory, RawHolder>::create(thread_count / 2));
 		}
 };
 
 template<typename T, typename RawHistory, typename RawHolder> reducing_snapshot<T, RawHistory, RawHolder>* reducing_snapshot<T, RawHistory, RawHolder>::create(int thread_count) {
 	assert(thread_count > 0);
 	if (thread_count == 1)
-		return new leaf<T, RawHistory>();
+		return new leaf<T, RawHistory, RawHolder>();
 	else
 		return new node<T, RawHistory, RawHolder>(thread_count);
 }

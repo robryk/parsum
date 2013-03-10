@@ -1,6 +1,6 @@
-CXXFLAGS=-std=c++0x -g -march=native -pthread -O2
-CXXFLAGS_RELACY=-std=c++0x -I../relacy -g -march=native -O2 -DRELACY
-LDFLAGS=-pthread
+CXXFLAGS=-std=c++0x -g -march=native -pthread -O2 -flto
+CXXFLAGS_RELACY=-std=c++0x -I../relacy -g -march=native -O2 -DRELACY -flto
+LDFLAGS=-pthread -lprofiler
 CXX=g++
 
 %.relacy.o: %.cpp
