@@ -4,6 +4,7 @@
 
 #include "util.hpp"
 #include "large_atomic.hpp"
+#include "counter.hpp"
 
 #define ATOMIC(x) std::atomic< x >
 
@@ -99,7 +100,11 @@ template<typename T, typename Raw = raw_history> class history {
 		bool publish(tid_t me, version_t ver, const T* input) {
 			intptr_t buffer[element_size];
 			memcpy(buffer, input, sizeof(T));
-			return hist.publish(me, ver, buffer);
+			counter::inc_counter(counter::History_PublishCall, 1);
+			bool result = hist.publish(me, ver, buffer);
+			if (result)
+				counter::inc_counter(counter::History_PublishSucc, 1);
+			return result;
 		}
 };
 

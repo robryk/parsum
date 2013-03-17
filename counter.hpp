@@ -9,6 +9,8 @@ namespace counter {
 		Parsum_OwnPublish,
 		Parsum_UpdateLastCall,
 		Parsum_UpdateLastExec,
+		History_PublishCall,
+		History_PublishSucc,
 		N_Counter
 	};
 
