@@ -71,6 +71,7 @@ int main()
 	rl::test_params p;
 	p.execution_depth_limit = 5000;
 	rl::simulate<fixture_locked>(p);
+	rl::simulate<fixture_lockfree>(p);
 #else
 	run_test<reducing_snapshot_test<reducing_snapshot<intpair> > >(5, 20000000);
 #endif

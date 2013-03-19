@@ -63,6 +63,7 @@ struct reducing_snapshot_test {
 		std::cout << "Updates with own publish: " << ((double)counter::get_counter(counter::Parsum_OwnPublish)) / counter::get_counter(counter::Parsum_Update) << std::endl;
 		std::cout << "Full update_lasts: " << ((double)counter::get_counter(counter::Parsum_UpdateLastExec)) / counter::get_counter(counter::Parsum_UpdateLastCall) << std::endl;
 		std::cout << "Full update_lasts per update: " << ((double)counter::get_counter(counter::Parsum_UpdateLastExec)) / counter::get_counter(counter::Parsum_Update) << std::endl;
+		std::cout << "Fraction of successful history updates: " << ((double)counter::get_counter(counter::History_PublishSucc)) / counter::get_counter(counter::History_PublishCall) << std::endl;
 	}
 
 	reducing_snapshot_test(int t) :

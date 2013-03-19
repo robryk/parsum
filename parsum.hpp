@@ -1,6 +1,7 @@
 #include "util.hpp"
 #include "holder.hpp"
 #include "history.hpp"
+#include "counter.hpp"
 
 template<typename T, typename RawHistory = raw_history, typename RawHolder = raw_holder> class reducing_snapshot {
 	public:
@@ -85,39 +86,71 @@ template<typename T, typename RawHistory, typename RawHolder> class node : publi
 		int child_tid(int tid) { return tid / 2; }
 
 		void update_last(intptr_t tid) {
+			counter::inc_counter(counter::Parsum_UpdateLastCall, 1);
 			update_result child_result;
 			bool ok = children_[child_idx(tid)]->get_last(child_tid(tid), &child_result);
 			if (!ok)
 				return;
 			latest_value current_lv;
 			intptr_t our_lv = latest_[tid].get(&current_lv);
+			// We cannot return early if this get has failed, because we guarantee that by the time we return,
+			// latest is updated.
 			if (our_lv >= child_result.update_count)
 				return;
-			intptr_t version_after = history_.get_version();
-			intptr_t version_before = version_after - 3*thread_count_;
-			while (version_before + 1 < version_after) {
-				intptr_t middle = (version_before + version_after) / 2;
+			counter::inc_counter(counter::Parsum_UpdateLastExec, 1);
+			struct {
+				intptr_t version;
+				value val;
+				bool val_ok;
+			} before, after;
+			after.version = history_.get_version();
+			before.version = after.version - thread_count_ - 1;
+			if (!history_.get(after.version, &after.val))
+				return;
+			if (after.val.child_versions[child_idx(tid)] < child_result.version)
+				return;
+			before.val_ok = history_.get(before.version, &before.val);
+			if (before.val_ok && before.val.child_versions[child_idx(tid)] >= child_result.version)
+				return;
+			after.val_ok = true;
+			while (before.version + 1 < after.version) {
+				intptr_t middle; // we require before.version < middle < after.version
+				if (after.val_ok && before.val_ok) {
+					intptr_t chver_before = before.val.child_versions[child_idx(tid)];
+					intptr_t chver_after = after.val.child_versions[child_idx(tid)];
+					assert(chver_before < child_result.version);
+					assert(chver_after >= child_result.version);
+					middle = before.version + (after.version - before.version) * (child_result.version - chver_before) / (chver_after - chver_before);
+					if (middle >= after.version)
+						middle = after.version - 1;
+					if (middle <= before.version)
+						middle = before.version + 1;
+				} else {
+					middle = (before.version + after.version) / 2;
+				}
 				value v;
 				ok = history_.get(middle, &v);
-				if (ok && v.child_versions[child_idx(tid)] >= child_result.version)
-					version_after = middle;
-				else
-					version_before = middle;
+				if (ok && v.child_versions[child_idx(tid)] >= child_result.version) {
+					after.version = middle;
+					after.val = v;
+					after.val_ok = ok;
+				} else {
+					before.version = middle;
+					before.val = v;
+					before.val_ok = ok;
+				}
 			}
-			assert(version_before + 1 == version_after);
-			value value_before, value_after;
-			if (!history_.get(version_before, &value_before))
+			assert(before.version + 1 == after.version);
+			if (!after.val_ok || !before.val_ok)
 				return;
-			if (!history_.get(version_after, &value_after))
-				return;
-			if (value_after.child_versions[child_idx(tid)] < child_result.version)
-				return;
+			assert(after.val.child_versions[child_idx(tid)] >= child_result.version);
+			assert(before.val.child_versions[child_idx(tid)] < child_result.version);
 			latest_value lv;
-			lv.version = version_after;
+			lv.version = after.version;
 			if (child_idx(tid) == 0)
-				lv.value_before = child_result.value_before + value_before.child_values[1];
+				lv.value_before = child_result.value_before + before.val.child_values[1];
 			else
-				lv.value_before = value_after.child_values[0] + child_result.value_before ;
+				lv.value_before = after.val.child_values[0] + child_result.value_before;
 			latest_[tid].update(child_result.update_count, &lv);
 		}
 	public:
@@ -138,6 +171,7 @@ template<typename T, typename RawHistory, typename RawHolder> class node : publi
 			update_result child_result = children_[child_idx(tid)]->update(child_tid(tid), val);
 			intptr_t other_version = children_[1-child_idx(tid)]->get_version();
 
+			bool tt = false;
 			do {
 				intptr_t my_version = get_version();
 				value my_value;
@@ -151,9 +185,13 @@ template<typename T, typename RawHistory, typename RawHolder> class node : publi
 				if (new_value.child_versions[0] == INVALID_VERSION || new_value.child_versions[1] == INVALID_VERSION)
 					break;
 				update_last(my_version % thread_count_);
-				if (history_.publish(tid, my_version+1, &new_value))
+				if (history_.publish(tid, my_version+1, &new_value)) {
+					counter::inc_counter(counter::Parsum_OwnPublish, 1);
 					break;
+				}
 			} while (true);
+
+			counter::inc_counter(counter::Parsum_Update, 1);
 
 			update_result result;
 			bool ok = get_last(tid, &result);
