@@ -32,17 +32,6 @@ struct fixture : public rl::test_suite<fixture, thread_count>, public name { \
 #define VAR(x) x
 #define $
 #define USING_MEMORY_ORDERS using std::memory_order_seq_cst; using std::memory_order_acquire; using std::memory_order_release; using std::memory_order_relaxed
-template<typename T, typename... Args> void run_test(int thread_count, Args... args) {
-	T obj(thread_count, std::forward<Args>(args)...);
-	obj.before();
-	std::thread thrs[thread_count];
-	for(int i=0;i<thread_count;i++)
-		thrs[i] = std::thread(&T::thread, &obj, i);
-	for(int i=0;i<thread_count;i++)
-		thrs[i].join();
-	obj.after();
-}
-
 #define RELACY_FIXTURE(...)
 	
 #endif
