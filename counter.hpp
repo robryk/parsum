@@ -18,6 +18,7 @@ namespace counter {
 	intptr_t get_counter(int c);
 	void finalize();
 	void reset();
+	void local_reset();
 	void inc_counter(int c, intptr_t inc);
 #else
 	static inline void inc_counter(int c, intptr_t inc) { }
