@@ -6,9 +6,9 @@ CXX=g++
 %.relacy.o: %.cpp
 		$(CXX) $(CXXFLAGS_RELACY) -c $< -o $@
 
-history_bench: history.o history_test.o
+history_bench: history.o history_bench.o counter.o bench.o
 	$(CXX) $(LDFLAGS) $^ -o $@
-parsum_bench: history.o holder.o parsum_bench.o counter.o
+parsum_bench: history.o holder.o parsum_bench.o counter.o bench.o
 	$(CXX) $(LDFLAGS) $^ -o $@
 
 history_rrd_test: history.relacy.o history_test.relacy.o
