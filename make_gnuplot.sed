@@ -3,8 +3,9 @@
 /^$/ { # print on empty line
 	x
 	s/^\n//
-	s/\n/;/g
+	s/\n/ /g
 	p
+	d
 }
 
 # Remove label
