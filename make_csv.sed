@@ -1,3 +1,5 @@
+#!/usr/bin/sed -nf
+
 /^$/ { # print on empty line
 	x
 	s/^\n//
